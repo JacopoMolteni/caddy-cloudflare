@@ -18,15 +18,12 @@ env:
   UPSTREAM_IMAGE_NAME: caddy
   UPSTREAM_IMAGE_TAG: latest
 
-  UPSTREAM_FULL_IMAGE: ${{ env.UPSTREAM_IMAGE_NAME }}:${{ env.UPSTREAM_IMAGE_TAG }}
-
-
 jobs:
   check_and_build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Need write for cache and potentially to commit digest
-      packages: write # Required to push to GitHub Packages
+      contents: write
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -47,29 +44,29 @@ jobs:
       - name: Get current upstream image digest
         id: upstream_digest
         run: |
-          echo "Pulling ${UPSTREAM_FULL_IMAGE} to get its digest..."
-          # Using --platform linux/amd64 to ensure consistent digest if multi-arch. Adjust if you target other platforms.
-          UPSTREAM_DIGEST=$(docker buildx imagetools inspect --format '{{.Digest}}' --platform linux/amd64 "${UPSTREAM_FULL_IMAGE}")
-          echo "Current upstream digest for ${UPSTREAM_FULL_IMAGE}: ${UPSTREAM_DIGEST}"
+          UPSTREAM_FULL_IMAGE_RUNTIME="${{ env.UPSTREAM_IMAGE_NAME }}:${{ env.UPSTREAM_IMAGE_TAG }}"
+          echo "Pulling ${UPSTREAM_FULL_IMAGE_RUNTIME} to get its digest..."
+          UPSTREAM_DIGEST=$(docker buildx imagetools inspect --format '{{.Digest}}' --platform linux/amd64 "${UPSTREAM_FULL_IMAGE_RUNTIME}")
+          echo "Current upstream digest for ${UPSTREAM_FULL_IMAGE_RUNTIME}: ${UPSTREAM_DIGEST}"
           echo "UPSTREAM_DIGEST=${UPSTREAM_DIGEST}" >> $GITHUB_OUTPUT
 
       - name: Restore last known upstream digest from cache
         id: cache_digest
         uses: actions/cache/restore@v4
         with:
-          path: ./.last_upstream_digest # File to store the digest
+          path: ./.last_upstream_digest
           key: ${{ runner.os }}-upstream-digest-${{ env.UPSTREAM_IMAGE_NAME }}-${{ env.UPSTREAM_IMAGE_TAG }}
 
       - name: Compare digests and determine if build is required
         id: compare
         run: |
           LAST_DIGEST_FILE="./.last_upstream_digest"
-          LAST_UPSTREAM_DIGEST="none" # Default if file not found
+          LAST_UPSTREAM_DIGEST="none"
           if [ -f "$LAST_DIGEST_FILE" ]; then
             LAST_UPSTREAM_DIGEST=$(cat "$LAST_DIGEST_FILE")
             echo "Last known upstream digest: ${LAST_UPSTREAM_DIGEST}"
           else
-            echo "No last known upstream digest file found. This is likely the first run or cache miss."
+            echo "No last known upstream digest file found. This is likely the first run for this image or cache miss."
           fi
 
           CURRENT_UPSTREAM_DIGEST="${{ steps.upstream_digest.outputs.UPSTREAM_DIGEST }}"
