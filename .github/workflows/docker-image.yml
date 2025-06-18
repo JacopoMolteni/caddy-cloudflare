@@ -5,7 +5,7 @@ on:
     branches:
       - main # Trigger on pushes to the main branch
     paths:
-      - 'Containerfile' # Only trigger if Dockerfile changes
+      - 'Dockerfile' # Only trigger if Dockerfile changes
   workflow_dispatch: # Allows manual trigger from GitHub UI
   schedule:
     - cron: '0 0 * * *' # Run daily at midnight UTC - adjust as needed (e.g., '0 0 * * 0' for weekly)
