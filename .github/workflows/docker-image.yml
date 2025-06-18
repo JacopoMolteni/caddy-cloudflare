@@ -8,7 +8,7 @@ on:
       - 'Dockerfile' # Only trigger if Dockerfile changes
   workflow_dispatch: # Allows manual trigger from GitHub UI
   schedule:
-    - cron: '25 19 * * *'
+    - cron: '35 19 * * *'
 
 env:
   IMAGE_NAME: caddy-cloudflare # Your repository name
