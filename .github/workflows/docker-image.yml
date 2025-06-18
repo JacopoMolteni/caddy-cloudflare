@@ -64,12 +64,12 @@ jobs:
         id: compare
         run: |
           LAST_DIGEST_FILE="./.last_upstream_digest"
+          LAST_UPSTREAM_DIGEST="none" # Default if file not found
           if [ -f "$LAST_DIGEST_FILE" ]; then
             LAST_UPSTREAM_DIGEST=$(cat "$LAST_DIGEST_FILE")
             echo "Last known upstream digest: ${LAST_UPSTREAM_DIGEST}"
           else
-            LAST_UPSTREAM_DIGEST="none" # Indicates no previous digest was found
-            echo "No last known upstream digest found. This is likely the first run for this image or cache miss."
+            echo "No last known upstream digest file found. This is likely the first run or cache miss."
           fi
 
           CURRENT_UPSTREAM_DIGEST="${{ steps.upstream_digest.outputs.UPSTREAM_DIGEST }}"
@@ -84,7 +84,6 @@ jobs:
 
       - name: Get Docker metadata (Conditional)
         id: meta
-        # Only run this if a build is actually required, as its outputs are only needed then.
         if: steps.compare.outputs.BUILD_REQUIRED == 'true'
         uses: docker/metadata-action@v5
         with:
@@ -94,7 +93,7 @@ jobs:
             type=sha,format=long
 
       - name: Build and push Docker image (Conditional)
-        if: steps.compare.outputs.BUILD_REQUIRED == 'true' # Only run if build is required
+        if: steps.compare.outputs.BUILD_REQUIRED == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -110,12 +109,13 @@ jobs:
           echo "Successfully pushed images:"
           echo "${{ steps.meta.outputs.tags }}"
 
+      - name: Create digest file for cache
+        if: steps.compare.outputs.BUILD_REQUIRED == 'true'
+        run: echo "${{ steps.upstream_digest.outputs.UPSTREAM_DIGEST }}" > ./.last_upstream_digest
+
       - name: Save current upstream digest to cache (Conditional)
-        if: steps.compare.outputs.BUILD_REQUIRED == 'true' # Only save if a build was performed
+        if: steps.compare.outputs.BUILD_REQUIRED == 'true'
         uses: actions/cache/save@v4
         with:
           path: ./.last_upstream_digest
           key: ${{ runner.os }}-upstream-digest-${{ env.UPSTREAM_IMAGE_NAME }}-${{ env.UPSTREAM_IMAGE_TAG }}
-          # The key must match the restore key
-        run: |
-          echo "${{ steps.upstream_digest.outputs.UPSTREAM_DIGEST }}" > ./.last_upstream_digest
