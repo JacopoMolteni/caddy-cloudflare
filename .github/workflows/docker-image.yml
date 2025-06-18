@@ -46,7 +46,7 @@ jobs:
         run: |
           UPSTREAM_FULL_IMAGE_RUNTIME="${{ env.UPSTREAM_IMAGE_NAME }}:${{ env.UPSTREAM_IMAGE_TAG }}"
           echo "Pulling ${UPSTREAM_FULL_IMAGE_RUNTIME} to get its digest..."
-          UPSTREAM_DIGEST=$(docker buildx imagetools inspect --format '{{.Digest}}' "${UPSTREAM_FULL_IMAGE_RUNTIME}")
+          UPSTREAM_DIGEST=$(docker buildx imagetools inspect --format '{{.Digest}}' "${UPSTREAM_FULL_IMAGE_RUNTIME}" | head -n 1)
           echo "Current upstream digest for ${UPSTREAM_FULL_IMAGE_RUNTIME}: ${UPSTREAM_DIGEST}"
           echo "UPSTREAM_DIGEST=${UPSTREAM_DIGEST}" >> $GITHUB_OUTPUT
 
